@@ -13,7 +13,7 @@ import os
 import csv
 import shutil
 import binascii
-import collections
+from collections import Counter
 
 import mne
 import numpy as np
@@ -203,8 +203,12 @@ def preprocess_eeg(id_num, random_seed=None):
         raw_copy.set_annotations(new_annot)
 
     # Check annotations to verify we have equal numbers of each
-    counts = collections.Counter(raw_copy.annotations.description)
-    print(counts)
+    orig_counts = Counter([name_map[a['description']] for a in annot])
+    counts = Counter(raw_copy.annotations.description)
+    print("Updated Annotation Counts:")
+    for a in name_map.values():
+        out = " - '{0}': {1} -> {2}"
+        print(out.format(a, orig_counts[a], counts[a]))
     
     # Get info
     id_info['annot_doubled'] = len(doubled)
@@ -219,7 +223,7 @@ def preprocess_eeg(id_num, random_seed=None):
     id_info['acc_submit'] = counts['accuracy_submit']
     id_info['vivid_submit'] = counts['vividness_submit']
 
-    
+
     ### Run components of PREP manually #######################################
     
     print("\n\n=== Performing CleanLine... ===")
