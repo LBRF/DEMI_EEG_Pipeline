@@ -223,7 +223,7 @@ def preprocess_eeg(id_num, random_seed=None):
     ### Run components of PREP manually #######################################
     
     print("\n\n=== Performing CleanLine... ===")
-
+    
     # Try to remove line noise using CleanLine approach
     linenoise = np.arange(60, sample_rate / 2, 60)
     EEG_raw = raw_copy.get_data() * 1e6
@@ -351,13 +351,21 @@ for sub in os.listdir(bids_root):
     if "sub-" in sub:
         ids.append(sub.split("-")[1])
 
-first_id = True
-with open(info_file, 'w', newline='') as outfile:
+processed_ids = []
+if not os.path.isfile(info_file):
+    open(info_file, 'w').close()
+elif os.path.getsize(info_file) > 0:
+    with open(info_file, 'r') as f:
+        info_csv = csv.DictReader(f)
+        processed_ids = [row['id'] for row in info_csv]
+
+first_id = len(processed_ids) == 0
+with open(info_file, 'a', newline='') as outfile:
     writer = csv.writer(outfile)
+    print("")
     for sub in ids:
-        outpath = os.path.join(outdir, outfile_fmt.format(sub))
-        if os.path.exists(outpath):
-            print(" - '{0}' already exists, skipping...\n".format(outpath))
+        if sub in processed_ids:
+            print(" - sub-{0} already processed, skipping...\n".format(sub))
             continue
         info = preprocess_eeg(sub, random_seed=seed)
         if first_id:
