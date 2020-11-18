@@ -114,6 +114,9 @@ def preprocess_eeg(id_num, random_seed=None):
     # Load EEG data
     raw = read_raw_bids(bids_path, verbose=True)
 
+    # Check if recording is complete
+    complete = len(raw.annotations) >= 600
+
     # Add a montage to the data
     montage_kind = "standard_1005"
     montage = mne.channels.make_standard_montage(montage_kind)
@@ -144,8 +147,9 @@ def preprocess_eeg(id_num, random_seed=None):
     raw_copy.pick_types(eeg=True)
 
     # Plot data prior to any processing
-    save_psd_plot(id_num, "psd_0_raw", plot_path, raw_copy)
-    save_channel_plot(id_num, "ch_0_raw", plot_path, raw_copy)
+    if complete:
+        save_psd_plot(id_num, "psd_0_raw", plot_path, raw_copy)
+        save_channel_plot(id_num, "ch_0_raw", plot_path, raw_copy)
 
 
     ### Clean up events #######################################################
@@ -222,6 +226,17 @@ def preprocess_eeg(id_num, random_seed=None):
     id_info['trace_end'] = counts['trace_end']
     id_info['acc_submit'] = counts['accuracy_submit']
     id_info['vivid_submit'] = counts['vividness_submit']
+
+    if not complete:
+        remaining_info = {
+            'initial_bad': "NA", 'num_initial_bad': "NA",
+            'interpolated': "NA", 'num_interpolated': "NA",
+            'remaining_bad': "NA", 'num_remaining_bad': "NA"
+        }
+        id_info.update(remaining_info)
+        e = "\n\n### Incomplete recording for sub-{0}, skipping... ###\n\n"
+        print(e.format(id_num))
+        return id_info
 
 
     ### Run components of PREP manually #######################################
