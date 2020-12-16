@@ -329,6 +329,13 @@ def preprocess_eeg(id_num, random_seed=None):
     eog_indices, eog_scores = ica.find_bads_eog(filt_raw)
     ica.exclude = eog_indices
 
+    if not len(ica.exclude):
+        err = " - Encountered an ICA error for sub-{0}, skipping for now..."
+        print("\n")
+        print(err.format(id_num))
+        print("\n")
+        return id_info
+
     # Plot ICA info & diagnostics before removing from signal
     save_ica_plots(id_num, plot_path, filt_raw, ica, eog_scores)
 
