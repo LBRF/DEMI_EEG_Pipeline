@@ -12,6 +12,7 @@
 import os
 import csv
 import shutil
+import random
 import binascii
 from collections import Counter
 
@@ -101,6 +102,7 @@ def preprocess_eeg(id_num, random_seed=None):
     os.mkdir(plot_path)
     if not random_seed:
         random_seed = int(binascii.b2a_hex(os.urandom(4)), 16)
+    random.seed(random_seed)
     id_info = {"id": id_num, "random_seed": random_seed}
     
 
@@ -268,7 +270,7 @@ def preprocess_eeg(id_num, random_seed=None):
         raw_copy,
         prep_params,
         ransac=True,
-        random_state=seed
+        random_state=random_seed
     )
     print("\n\n=== Performing Robust Re-referencing... ===\n")
     reference.perform_reference()
@@ -322,7 +324,7 @@ def preprocess_eeg(id_num, random_seed=None):
 
     # Perform ICA using EOG data on eye blinks
     print("\n\n=== Removing Blinks Using ICA... ===\n")
-    ica = ICA(n_components=20, random_state=seed, method='picard')
+    ica = ICA(n_components=20, random_state=random_seed, method='picard')
     ica.fit(filt_raw, decim=5)
     eog_indices, eog_scores = ica.find_bads_eog(filt_raw)
     ica.exclude = eog_indices
