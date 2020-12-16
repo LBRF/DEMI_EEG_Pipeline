@@ -134,7 +134,8 @@ def preprocess_eeg(id_num, random_seed=None):
     raw_copy.load_data()
 
     # Trim duplicated data (only needed for sub-005)
-    file_starts = [a for a in raw_copy.annotations if a['description'] == "100"]
+    annot = raw_copy.annotations
+    file_starts = [a for a in annot if a['description'] == "file start"]
     if len(file_starts):
         duplicate_start = file_starts[0]['onset']
         raw_copy.crop(tmax=duplicate_start)
@@ -156,14 +157,10 @@ def preprocess_eeg(id_num, random_seed=None):
     
     print("\n\n=== Processing Event Annotations... ===\n")
 
-    name_map = {
-        '1': "stim_on",
-        '2': "red_on",
-        '3': "trace_start",
-        '4': "trace_end",
-        '10': "accuracy_submit",
-        '20': "vividness_submit",
-    }
+    event_names = [
+        "stim_on", "red_on", "trace_start", "trace_end",
+        "accuracy_submit", "vividness_submit"
+    ]
     doubled = []
     wrong_label = []
     new_onsets = []
@@ -187,16 +184,14 @@ def preprocess_eeg(id_num, random_seed=None):
 
     # Rename annotations to have meaningful names & fix duplicates
     for a in raw_copy.annotations:
-        if a in doubled or a['description'] not in name_map.keys():
+        if a in doubled or a['description'] not in event_names:
             continue
         if a in wrong_label:
-            if a['description'] == "10":
-                a['description'] = str(int(a['description']) + 10)
-            else:
-                a['description'] = str(int(a['description']) + 1)
+            index = event_names.index(a['description'])
+            a['description'] = event_names[index + 1]
         new_onsets.append(a['onset'])
         new_durations.append(a['duration'])
-        new_descriptions.append(name_map[a['description']])
+        new_descriptions.append(a['description'])
 
     # Replace old annotations with new fixed ones
     if len(annot):
@@ -207,10 +202,10 @@ def preprocess_eeg(id_num, random_seed=None):
         raw_copy.set_annotations(new_annot)
 
     # Check annotations to verify we have equal numbers of each
-    orig_counts = Counter([name_map[a['description']] for a in annot])
+    orig_counts = Counter(annot.description)
     counts = Counter(raw_copy.annotations.description)
     print("Updated Annotation Counts:")
-    for a in name_map.values():
+    for a in event_names:
         out = " - '{0}': {1} -> {2}"
         print(out.format(a, orig_counts[a], counts[a]))
     
