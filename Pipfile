@@ -9,9 +9,9 @@ ptpython = "*"
 mnelab = "*"
 
 [packages]
-mne = "0.21.0"
+mne = "0.21.2"
 mne_bids = "0.5"
-pyprep = "0.3.1"
+pyprep = {git = "https://github.com/sappelhoff/pyprep.git", ref = "dd618a3083d11ca508fb88de034ac35082649b2f"}
 python-picard = {git = "https://github.com/pierreablin/picard.git", ref = "f40b97e600bfe6140eec9e5346934e6032a669ad"}
 statsmodels = "*"
 psutil = "*"

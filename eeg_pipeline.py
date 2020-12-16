@@ -100,7 +100,7 @@ def save_bad_fif(dat, id_num, outdir_bad):
     if not os.path.isdir(outdir_bad):
         os.makedirs(outdir_bad)
     outpath = os.path.join(outdir_bad, outfile_fmt.format(id_num))
-    outpath.replace('.edf', '.fif')
+    outpath = outpath.replace('.edf', '.fif')
     dat.save(outpath)
 
 
