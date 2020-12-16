@@ -41,11 +41,15 @@ task = 'tracelab'
 datatype = 'eeg'
 bids_root = 'bids'
 output_root = 'output'
+
 outdir = os.path.join(output_root, 'eeg')
 plotdir = os.path.join(output_root, 'plots')
+badsdir = os.path.join(outdir, 'bad')
+noisy_bad_dir = os.path.join(badsdir, 'too_noisy')
+ica_err_dir = os.path.join(badsdir, 'ica_err')
 info_file = os.path.join(output_root, 'prep_info.csv')
-max_interpolated = 0.25 # 25%
 
+max_interpolated = 0.25 # 25%
 outfile_fmt = 'sub-{0}_eeg_prepped.edf'
 
 
@@ -90,6 +94,14 @@ def save_ica_plots(id_num, path, dat, ica, eog_scores):
     ica_plot3 = ica.plot_sources(dat, show = False)
     ica_plot3.savefig(plot_path, bbox_inches = 'tight')
     plt.close()
+
+
+def save_bad_fif(dat, id_num, outdir_bad):
+    if not os.path.isdir(outdir_bad):
+        os.makedirs(outdir_bad)
+    outpath = os.path.join(outdir_bad, outfile_fmt.format(id_num))
+    outpath.replace('.edf', '.fif')
+    dat.save(outpath)
 
 
 def preprocess_eeg(id_num, random_seed=None):
@@ -308,6 +320,7 @@ def preprocess_eeg(id_num, random_seed=None):
         print("\n")
         print(e.format(id_num, len(reference.interpolated_channels)))
         print("\n")
+        save_bad_fif(raw_prepped, id_num, noisy_bad_dir)
         return id_info
 
 
@@ -315,18 +328,17 @@ def preprocess_eeg(id_num, random_seed=None):
 
     # Apply highpass & lowpass filters
     print("\n\n=== Applying Highpass & Lowpass Filters... ===")
-    filt_raw = raw_prepped.copy()
-    filt_raw.filter(1.0, 50.0, fir_design='firwin')
+    raw_prepped.filter(1.0, 50.0, fir_design='firwin')
 
     # Plot data following frequency filters
-    save_psd_plot(id_num, "psd_3_filtered", plot_path, filt_raw)
-    save_channel_plot(id_num, "ch_3_filtered", plot_path, filt_raw)
+    save_psd_plot(id_num, "psd_3_filtered", plot_path, raw_prepped)
+    save_channel_plot(id_num, "ch_3_filtered", plot_path, raw_prepped)
 
     # Perform ICA using EOG data on eye blinks
     print("\n\n=== Removing Blinks Using ICA... ===\n")
     ica = ICA(n_components=20, random_state=random_seed, method='picard')
-    ica.fit(filt_raw, decim=5)
-    eog_indices, eog_scores = ica.find_bads_eog(filt_raw)
+    ica.fit(raw_prepped, decim=5)
+    eog_indices, eog_scores = ica.find_bads_eog(raw_prepped)
     ica.exclude = eog_indices
 
     if not len(ica.exclude):
@@ -334,23 +346,24 @@ def preprocess_eeg(id_num, random_seed=None):
         print("\n")
         print(err.format(id_num))
         print("\n")
+        save_bad_fif(raw_prepped, id_num, ica_err_dir)
         return id_info
 
     # Plot ICA info & diagnostics before removing from signal
-    save_ica_plots(id_num, plot_path, filt_raw, ica, eog_scores)
+    save_ica_plots(id_num, plot_path, raw_prepped, ica, eog_scores)
 
     # Remove eye blink independent components based on ICA
-    ica.apply(filt_raw)
+    ica.apply(raw_prepped)
 
     # Plot data following ICA
-    save_psd_plot(id_num, "psd_4_ica", plot_path, filt_raw)
-    save_channel_plot(id_num, "ch_4_ica", plot_path, filt_raw)
+    save_psd_plot(id_num, "psd_4_ica", plot_path, raw_prepped)
+    save_channel_plot(id_num, "ch_4_ica", plot_path, raw_prepped)
 
 
     ### Write preprocessed data to new EDF ####################################
 
     outpath = os.path.join(outdir, outfile_fmt.format(id_num))
-    write_mne_edf(outpath, filt_raw)
+    write_mne_edf(outpath, raw_prepped)
     
     print("\n\n### sub-{0} complete! ###\n\n".format(id_num))
     
