@@ -33,3 +33,5 @@ The pipeline produces three forms of output:
 1. The preprocessed EEG data in EDF+ format, located in the `output/eeg` folder
 2. Plots visualizing the effects of the preprocessing steps, located in the `output/plots` folder
 3. Data on the preprocessing for all particpants, located in the `output/prep_info.csv` file
+
+Sessions flagged as unusable due to excessive noise or problems with ICA removal of blinks are saved as MNE `.fif` files in the `output/bads/too_noisy` and `output/bads/ica_err` folders, respectively. This allows partially-processed problem files to be inspected manually if needed.

@@ -171,13 +171,6 @@ for study_id, filepath in all_raw:
             file_info[k] = metadata[k]
     _write_json(json_path.fpath, file_info, overwrite=True, verbose=False)
     
-    # Remove useless scans.tsv file
-    scans_file = "sub-{0}_scans.tsv".format(study_id)
-    sub_dir = "sub-{0}".format(study_id)
-    scans_path = os.path.join(bids_root, sub_dir, scans_file)
-    if os.path.isfile(scans_path):
-        os.remove(scans_path) 
-    
 
 print("\n\n#################################")    
 print("### BIDS conversion complete! ###")
