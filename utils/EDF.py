@@ -42,14 +42,8 @@ import numpy as np
 
 
 
-def padtrim(buf, num, pad = ' '):
-    num -= len(buf)
-    if num >= 0:
-        # pad the input to the specified length
-        return (str(buf) + pad * num)
-    else:
-        # trim the input to the specified length
-        return buf[0:num]
+def padtrim(buf, size, pad = ' '):
+    return str(buf).ljust(size, pad)[:size]
 
 def writebyte(file, content, encoding='ascii'):
     try:
@@ -72,15 +66,16 @@ def set_offsets(chan_obj):
     offsets = []
     calibrations = []
     for i in range(len(chan_obj['ch_names'])):
-        # return a tuple of offset value and calibrate value
-        phys_range = chan_obj['physical_max'][i] - chan_obj['physical_min'][i]
-        digital_range = chan_obj['digital_max'][i] - chan_obj['digital_min'][i]
-        calibrate = phys_range / digital_range
-        offset = (chan_obj['physical_max'][i] / calibrate) - chan_obj['digital_max'][i]
+        # Truncate floats for physical min/max to match header values
+        pmin = float(padtrim(chan_obj['physical_min'][i], 8))
+        pmax = float(padtrim(chan_obj['physical_max'][i], 8))
+        dmin = chan_obj['digital_min'][i]
+        dmax = chan_obj['digital_max'][i]
+        # Calculate and append offsets and calibrations
+        calibrate = (pmax - pmin) / (dmax - dmin)
+        offset = (pmax / calibrate) - dmax
         offsets.append(offset)
         calibrations.append(calibrate)
-        #calibrated_dig_min = calibrate * chan_obj['digital_min']
-        #offset = chan_obj['physical_min'] - calibrated_dig_min
     return (offsets, calibrations)
 
 def verify_ascii(x):
@@ -192,7 +187,7 @@ class EDFWriter():
         with open(self.fname, 'r+b') as fid:
             assert fid.tell() == 0
             fid.seek(236)
-            writebyte(fid, (padtrim(str(self.n_records), 8))) 
+            writebyte(fid, padtrim(self.n_records, 8)) 
             
         self._initial_state()
 
@@ -268,13 +263,13 @@ class EDFWriter():
             writebyte(fid, (padtrim(meas_info['startdate'], 8)))
             writebyte(fid, (padtrim(meas_info['starttime'], 8)))
             
-            writebyte(fid, (padtrim(str(meas_size + chan_size), 8)))
+            writebyte(fid, (padtrim(meas_size + chan_size, 8)))
             writebyte(fid, (padtrim(typestr, 44)))
 
             # the final n_records should be inserted on byte 236
-            writebyte(fid, (padtrim(str(meas_info['record_count']), 8)))  
-            writebyte(fid, (padtrim(str(meas_info['record_length']), 8)))
-            writebyte(fid, (padtrim(str(meas_info['nchan'] + self.annot_ch), 4)))
+            writebyte(fid, (padtrim(meas_info['record_count'], 8)))  
+            writebyte(fid, (padtrim(meas_info['record_length'], 8)))
+            writebyte(fid, (padtrim(meas_info['nchan'] + self.annot_ch, 4)))
 
             # Write out per-channel metadata
             chan_fields = [
@@ -302,10 +297,10 @@ class EDFWriter():
                 chan_info[key] = np.asarray(chan_info[key])
                 # Actually write out data
                 for val in chan_info[key]:
-                    writebyte(fid, padtrim(str(val), bytes_per_field[key]))
+                    writebyte(fid, padtrim(val, bytes_per_field[key]))
                 # If needed, add annotation channel info
                 if self.annot_ch == 1:
-                    writebyte(fid, padtrim(str(annot_ch_info[key]), bytes_per_field[key]))
+                    writebyte(fid, padtrim(annot_ch_info[key], bytes_per_field[key]))
 
             for i in range(nchan + self.annot_ch):
                 writebyte(fid, (' ' * 32)) # reserved
@@ -353,8 +348,7 @@ class EDFWriter():
                     if max(raw) > self.chan_info['physical_max'][i]:
                         warn('Value exceeds physical_max: '+ str(max(raw)))
 
-                    raw /= self.calibrate[i]
-                    raw -= self.offset[i]
+                    raw = (raw / self.calibrate[i]) - self.offset[i]
 
                     raw = np.asarray(raw).astype(np.int16)
                     raw.tofile(fid)

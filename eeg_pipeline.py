@@ -154,9 +154,9 @@ def preprocess_eeg(id_num, random_seed=None):
         duplicate_start = file_starts[0]['onset']
         raw_copy.crop(tmax=duplicate_start)
 
-    # Make backup of EOG, EMG, & trigger channels to re-append after PREP
+    # Make backup of EOG and EMG channels to re-append after PREP
     raw_other = raw_copy.copy()
-    raw_other.pick_types(eog=True, emg=True, stim=True)
+    raw_other.pick_types(eog=True, emg=True, stim=False)
 
     # Prepare copy of raw data for PREP
     raw_copy.pick_types(eeg=True)
