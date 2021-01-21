@@ -5,7 +5,7 @@ verify_ssl = true
 
 [dev-packages]
 pylint = "*"
-ptpython = "*"
+ptpython = "3.0.7"
 mnelab = "*"
 
 [packages]
