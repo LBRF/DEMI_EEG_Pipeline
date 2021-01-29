@@ -136,24 +136,24 @@ for study_id, filepath in all_raw:
     dat.info['line_freq'] = 60
     
     # Extract trigger event data from EEG annotations
-    annot = mne.read_annotations(filepath)
-    if len(annot) > 10:
-        dat.set_annotations(annot)
-        events, event_id = mne.events_from_annotations(dat, event_id=event_map)
-        orig_time = dat.annotations.orig_time
-    else:
-        events = mne.find_events(dat, shortest_event=1, mask=65280,
-                                 mask_type="not_and")
-        orig_time = dat.info['meas_date']
     try:
+        annot = mne.read_annotations(filepath)
+        if len(annot) > 10:
+            dat.set_annotations(annot)
+            events, e_id = mne.events_from_annotations(dat, event_id=event_map)
+            orig_time = dat.annotations.orig_time
+        else:
+            events = mne.find_events(dat, shortest_event=1, mask=65280,
+                                     mask_type="not_and")
+            orig_time = dat.info['meas_date']
         events = mne.pick_events(events, include=list(event_map.values()))
         annot_new = mne.annotations_from_events(
             events=events, sfreq=dat.info['sfreq'], orig_time=orig_time,
             event_desc=event_name_map, verbose=False
         )
         dat.set_annotations(annot_new)
-    except RuntimeError:
-        print("   * Unable to find any triggers, skipping...\n")
+    except (ValueError, RuntimeError):
+        print("   * Unable to find any valid triggers, skipping...\n")
         continue
             
     # Acutally write out BIDS data
