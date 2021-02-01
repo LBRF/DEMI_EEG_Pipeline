@@ -315,13 +315,11 @@ def preprocess_eeg(id_num, random_seed=None):
 
     # Check if too many channels were interpolated for the participant
     prop_interpolated = len(reference.interpolated_channels) / len(ch_names_eeg)
-    e = "### Too many interpolated channels for sub-{0} ({1}), skipping... ###"
+    e = "### NOTE: Too many interpolated channels for sub-{0} ({1}) ###"
     if max_interpolated < prop_interpolated:
         print("\n")
         print(e.format(id_num, len(reference.interpolated_channels)))
         print("\n")
-        save_bad_fif(raw_prepped, id_num, noisy_bad_dir)
-        return id_info
 
 
     ### Filter data and apply ICA to remove blinks ############################
@@ -362,7 +360,12 @@ def preprocess_eeg(id_num, random_seed=None):
 
     ### Write preprocessed data to new EDF ####################################
 
-    outpath = os.path.join(outdir, outfile_fmt.format(id_num))
+    if max_interpolated < prop_interpolated:
+        if not os.path.isdir(noisy_bad_dir):
+            os.makedirs(noisy_bad_dir)
+        outpath = os.path.join(noisy_bad_dir, outfile_fmt.format(id_num))
+    else:
+        outpath = os.path.join(outdir, outfile_fmt.format(id_num))
     write_mne_edf(outpath, raw_prepped)
     
     print("\n\n### sub-{0} complete! ###\n\n".format(id_num))
