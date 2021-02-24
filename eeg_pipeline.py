@@ -49,6 +49,7 @@ noisy_bad_dir = os.path.join(badsdir, 'too_noisy')
 ica_err_dir = os.path.join(badsdir, 'ica_err')
 info_file = os.path.join(output_root, 'prep_info.csv')
 
+perform_csd = True
 interpolate_bads = True
 max_interpolated = 0.25 # 25%
 outfile_fmt = 'sub-{0}_eeg_prepped.edf'
@@ -369,6 +370,20 @@ def preprocess_eeg(id_num, random_seed=None):
     save_channel_plot(id_num, "ch_4_ica", plot_path, raw_prepped)
 
 
+    ### Compute Current Source Density (CSD) estimates ########################
+
+    if perform_csd:
+        print("\n")
+        print("=== Computing Current Source Density (CSD) Estimates... ===\n")
+        raw_prepped = mne.preprocessing.compute_current_source_density(
+            raw_prepped.drop_channels(remaining_bad)
+        )
+
+        # Plot data following CSD
+        save_psd_plot(id_num, "psd_5_csd", plot_path, raw_prepped)
+        save_channel_plot(id_num, "ch_5_csd", plot_path, raw_prepped)
+
+
     ### Write preprocessed data to new EDF ####################################
 
     if max_interpolated < prop_interpolated:
@@ -413,7 +428,7 @@ first_id = len(processed_ids) == 0
 with open(info_file, 'a', newline='') as outfile:
     writer = csv.writer(outfile)
     print("")
-    for sub in ids:
+    for sub in ['004']:
         if sub in processed_ids:
             print(" - sub-{0} already processed, skipping...\n".format(sub))
             continue

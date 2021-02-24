@@ -24,6 +24,15 @@ def write_mne_edf(fname, raw):
     lopass = raw.info['lowpass'] if raw.info['lowpass'] < default_lopass else None
     filt = pyedf.create_filter_str(hipass, lopass)
 
+    ch_units = []
+    for ch_type in raw.get_channel_types():
+        if ch_type in ['eeg', 'eog', 'emg']:
+            ch_units.append('uV')
+        elif ch_type == 'csd':
+            ch_units.append('uV/m^2')
+        else:
+            ch_units.append('')
+
     meas_info = {
         'subtype': filetype,
         'recording_id': pyedf.create_recording_id(startdate=date, technician="PyPREP"),
@@ -36,7 +45,7 @@ def write_mne_edf(fname, raw):
     chan_info = {
         'ch_names': raw.info["ch_names"],
         'transducers': [''] * nchan,
-        'units': ['uV'] * nchan,
+        'units': ch_units,
         'physical_min': data.min(axis=1),
         'physical_max': data.max(axis=1),
         'digital_min': [dmin] * nchan,
