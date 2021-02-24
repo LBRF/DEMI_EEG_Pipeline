@@ -49,6 +49,7 @@ noisy_bad_dir = os.path.join(badsdir, 'too_noisy')
 ica_err_dir = os.path.join(badsdir, 'ica_err')
 info_file = os.path.join(output_root, 'prep_info.csv')
 
+interpolate_bads = True
 max_interpolated = 0.25 # 25%
 outfile_fmt = 'sub-{0}_eeg_prepped.edf'
 
@@ -287,6 +288,13 @@ def preprocess_eeg(id_num, random_seed=None):
     print("\n\n=== Performing Robust Re-referencing... ===\n")
     reference.perform_reference()
 
+    # If not interpolating bad channels, use pre-interpolation channel data
+    if not interpolate_bads:
+        reference.raw._data = reference.EEG_before_interpolation * 1e-6
+        reference.interpolated_channels = []
+        reference.still_noisy_channels = reference.bad_before_interpolation
+        reference.raw.info["bads"] = reference.bad_before_interpolation
+
     # Plot data following robust re-reference
     save_psd_plot(id_num, "psd_2_reref", plot_path, reference.raw)
     save_channel_plot(id_num, "ch_2_reref", plot_path, reference.raw)
@@ -310,8 +318,11 @@ def preprocess_eeg(id_num, random_seed=None):
     # Print re-referencing info
     print("\nRe-Referencing Info:")
     print(" - Bad channels original: {0}".format(initial_bad))
-    print(" - Bad channels after re-referencing: {0}".format(interpolated))
-    print(" - Bad channels after interpolation: {0}".format(remaining_bad))
+    if interpolate_bads:
+        print(" - Bad channels after re-referencing: {0}".format(interpolated))
+        print(" - Bad channels after interpolation: {0}".format(remaining_bad))
+    else:
+        print(" - Bad channels after re-referencing: {0}".format(remaining_bad))
 
     # Check if too many channels were interpolated for the participant
     prop_interpolated = len(reference.interpolated_channels) / len(ch_names_eeg)
