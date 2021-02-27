@@ -428,7 +428,7 @@ first_id = len(processed_ids) == 0
 with open(info_file, 'a', newline='') as outfile:
     writer = csv.writer(outfile)
     print("")
-    for sub in ['004']:
+    for sub in ids:
         if sub in processed_ids:
             print(" - sub-{0} already processed, skipping...\n".format(sub))
             continue
